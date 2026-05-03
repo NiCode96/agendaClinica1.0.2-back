@@ -1,0 +1,47 @@
+### Listar todas las categorías activas de una plantilla
+POST http://localhost:3001/fichaCategoria/listarPorPlantilla
+Content-Type: application/json
+
+{
+  "id_plantilla": 1
+}
+
+
+### Obtener una categoría específica por id
+POST http://localhost:3001/fichaCategoria/obtenerPorId
+Content-Type: application/json
+
+{
+  "id_categoria": 1
+}
+
+
+### Insertar una nueva categoría en una plantilla
+POST http://localhost:3001/fichaCategoria/insertarCategoria
+Content-Type: application/json
+
+{
+  "id_plantilla": 1,
+  "nombre": "Indicaciones",
+  "orden": 3
+}
+
+
+### Actualizar una categoría existente
+POST http://localhost:3001/fichaCategoria/actualizarCategoria
+Content-Type: application/json
+
+{
+  "id_categoria": 1,
+  "nombre": "Indicaciones",
+  "orden": 4
+}
+
+
+### Eliminar (baja lógica) una categoría
+POST http://localhost:3001/fichaCategoria/eliminarCategoria
+Content-Type: application/json
+
+{
+  "id_categoria": 5
+}

@@ -1,0 +1,100 @@
+### Seleccionar todas las fichas clínicas
+GET http://localhost:3001/ficha/seleccionarTodasLasFichas
+
+
+### Seleccionar fichas de un paciente
+POST http://localhost:3001/ficha/seleccionarFichasPaciente
+Content-Type: application/json
+
+{
+  "id_paciente": 1
+}
+
+
+### Seleccionar ficha por ID de ficha
+POST http://localhost:3001/ficha/seleccionarFichaID
+Content-Type: application/json
+
+{
+  "id_ficha": 1
+}
+
+
+### Seleccionar ficha específica por ID de paciente e ID de ficha
+POST http://localhost:3001/ficha/seleccionarFichaEspecificaPorId
+Content-Type: application/json
+
+{
+  "id_paciente": 1,
+  "id_ficha": 1
+}
+
+
+### Insertar ficha clínica con plantilla dinámica
+POST http://localhost:3001/ficha/insertarFichaClinica
+Content-Type: application/json
+
+{
+  "id_paciente": 1,
+  "tipoAtencion": "Cita Médica",
+  "motivoConsulta": "",
+  "signosVitales": "",
+  "observaciones": "",
+  "anotacionConsulta": "",
+  "anamnesis": "",
+  "diagnostico": "",
+  "indicaciones": "",
+  "archivosAdjuntos": "",
+  "fechaConsulta": "2026-04-16",
+  "consentimientoFirmado": "",
+  "id_plantilla": 1,
+  "datosDinamicos": {
+    "10": "Dolor en brazo izquierdo desde hace 3 días",
+    "11": "Sin antecedentes relevantes",
+    "12": "Dermatitis de contacto"
+  }
+}
+
+
+### Actualizar ficha clínica con plantilla dinámica
+POST http://localhost:3001/ficha/editarFichaPaciente
+Content-Type: application/json
+
+{
+  "id_ficha": 3796,
+  "tipoAtencion": "Evolución y Control",
+  "motivoConsulta": "",
+  "signosVitales": "",
+  "observaciones": "",
+  "anotacionConsulta": "",
+  "anamnesis": "",
+  "diagnostico": "",
+  "indicaciones": "",
+  "archivosAdjuntos": "",
+  "fechaConsulta": "2026-04-16",
+  "consentimientoFirmado": "",
+  "id_plantilla": 1,
+  "datosDinamicos": {
+    "10": "Dolor en brazo izquierdo mejorado",
+    "11": "Sin antecedentes relevantes",
+    "12": "Dermatitis de contacto en remisión"
+  }
+}
+
+
+### Eliminar (baja lógica) ficha clínica
+POST http://localhost:3001/ficha/eliminarFichaClinica
+Content-Type: application/json
+
+{
+  "id_ficha": 1
+}
+
+
+### Eliminar (baja lógica) ficha clínica
+POST http://localhost:3001/ficha/seleccionar_similitud_nombre_profesional
+Content-Type: application/json
+
+{
+  "observaciones": "dr"
+}

@@ -1,0 +1,51 @@
+### Listar todas las plantillas activas
+GET http://localhost:3001/fichaPlantilla/listarPlantillas
+
+
+### Obtener cabecera de una plantilla por id
+POST http://localhost:3001/fichaPlantilla/obtenerPorId
+Content-Type: application/json
+
+{
+  "id_plantilla": 5
+}
+
+
+### Insertar una nueva plantilla
+POST http://localhost:3001/fichaPlantilla/insertarPlantilla
+Content-Type: application/json
+
+{
+  "nombre": "Consulta Masoterapia",
+  "descripcion": "Plantilla base para consulta Masoterapia"
+}
+
+
+### Actualizar una plantilla existente
+POST http://localhost:3001/fichaPlantilla/actualizarPlantilla
+Content-Type: application/json
+
+{
+  "nombre": "Consulta general actualizada",
+  "descripcion": "Descripción modificada",
+  "id_plantilla": 1
+
+}
+
+
+### Eliminar (baja lógica) una plantilla
+POST http://localhost:3001/fichaPlantilla/eliminarPlantilla
+Content-Type: application/json
+
+{
+  "id_plantilla": 5
+}
+
+
+### Obtener la plantilla completa (cabecera + categorías + campos)
+POST http://localhost:3001/fichaPlantilla/obtenerPlantillaCompleta
+Content-Type: application/json
+
+{
+  "id_plantilla": 1
+}

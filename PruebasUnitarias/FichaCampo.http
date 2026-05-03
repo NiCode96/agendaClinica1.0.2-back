@@ -1,0 +1,49 @@
+### Listar todos los campos activos de una categoría
+POST http://localhost:3001/fichaCampo/listarPorCategoria
+Content-Type: application/json
+
+{
+  "id_categoria": 9
+}
+
+
+### Obtener un campo específico por id
+POST http://localhost:3001/fichaCampo/obtenerPorId
+Content-Type: application/json
+
+{
+  "id_campo": 2
+}
+
+
+### Insertar un nuevo campo en una categoría
+POST http://localhost:3001/fichaCampo/insertarCampo
+Content-Type: application/json
+
+{
+  "id_categoria": 1,
+  "nombre": "Motivo de consulta Kinesiologica",
+  "requerido": 1,
+  "orden": 1
+}
+
+
+### Actualizar un campo existente
+POST http://localhost:3001/fichaCampo/actualizarCampo
+Content-Type: application/json
+
+{
+  "id_campo": 2,
+  "nombre": "Pruebas Actualizacion",
+  "requerido": "0",
+  "orden": 2
+}
+
+
+### Eliminar (baja lógica) un campo
+POST http://localhost:3001/fichaCampo/eliminarCampo
+Content-Type: application/json
+
+{
+  "id_campo": 1
+}

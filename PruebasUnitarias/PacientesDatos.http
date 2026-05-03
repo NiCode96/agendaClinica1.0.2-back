@@ -1,0 +1,118 @@
+### Seleccionar todos los pacientes
+GET http://localhost:3001/pacientes/
+
+
+### Seleccionar paciente especifico por id
+POST http://localhost:3001/pacientes/pacientesEspecifico
+Content-Type: application/json
+
+{
+  "id_paciente": 489
+}
+
+
+### Buscar pacientes por coincidencia de rut
+POST http://localhost:3001/pacientes/contieneRut
+Content-Type: application/json
+
+{
+  "rut": "11"
+}
+
+
+### Buscar pacientes por coincidencia de nombre
+POST http://localhost:3001/pacientes/contieneNombre
+Content-Type: application/json
+
+{
+  "nombre": "Paciente"
+}
+
+
+### Insertar nuevo paciente
+# Ajustado: el correo puede repetirse, el RUT no.
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{
+  "nombre": "Paciente",
+  "apellido": "Prueba Backend",
+  "rut": "11.111.111-1",
+  "nacimiento": "1990-01-20",
+  "sexo": "femenino",
+  "prevision_id": 1,
+  "telefono": "+56911111111",
+  "correo": "paciente.prueba.backend@example.com",
+  "direccion": "Calle Falsa 123",
+  "pais": "Chile",
+  "observacion1": "Observacion inicial",
+  "observacion2": "Observacion secundaria",
+  "observacion3": "Observacion terciaria",
+  "apoderado": "Maria Perez",
+  "apoderado_rut": "22.222.222-2",
+  "medicamentosUsados": "Ibuprofeno",
+  "habitos": "Actividad fisica moderada",
+  "comentariosAdicionales": "Paciente con antecedentes familiares"
+}
+
+
+### Insertar paciente con correo repetido y RUT distinto
+POST http://localhost:3001/pacientes/pacientesInsercion
+Content-Type: application/json
+
+{
+  "nombre": "Paciente",
+  "apellido": "Correo Repetido",
+  "rut": "11.111.111-2",
+  "nacimiento": "1991-02-21",
+  "sexo": "masculino",
+  "prevision_id": 1,
+  "telefono": "+56922222222",
+  "correo": "paciente.prueba.backend@example.com",
+  "direccion": "Calle Duplicada 456",
+  "pais": "Chile",
+  "observacion1": "Debe permitir correo repetido",
+  "observacion2": "Mismo correo, distinto RUT",
+  "observacion3": "Prueba backend",
+  "apoderado": "Juan Perez",
+  "apoderado_rut": "22.222.222-3",
+  "medicamentosUsados": "Ninguno",
+  "habitos": "Sin observaciones",
+  "comentariosAdicionales": "Validacion: solo el RUT debe bloquear duplicados"
+}
+
+
+### Actualizar paciente
+POST http://localhost:3001/pacientes/pacientesActualizar
+Content-Type: application/json
+
+{
+  "id_paciente": 489,
+  "nombre": "Nicolas",
+  "apellido": "Prueba Backend Editado",
+  "rut": "11.111.111-1",
+  "nacimiento": "1990-01-20",
+  "sexo": "femenino",
+  "prevision_id": 1,
+  "telefono": "+56999999999",
+  "correo": "paciente.prueba.editado@example.com",
+  "direccion": "Avenida Actualizada 456",
+  "pais": "Chile",
+  "observacion1": "Observacion inicial editada",
+  "observacion2": "Observacion secundaria editada",
+  "observacion3": "Observacion terciaria editada",
+  "apoderado": "Maria Perez Actualizada",
+  "apoderado_rut": "22.222.222-2",
+  "medicamentosUsados": "Ibuprofeno y Paracetamol",
+  "habitos": "Actividad fisica moderada y buena hidratacion",
+  "comentariosAdicionales": "Seguimiento en 30 dias"
+}
+
+
+### Eliminar paciente de manera logica
+POST http://localhost:3001/pacientes/eliminarPaciente
+Content-Type: application/json
+
+{
+  "id_paciente": 489
+}
