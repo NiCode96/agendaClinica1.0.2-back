@@ -134,6 +134,14 @@ export async function notificacionAgendamiento({ telefono, nombre, clinica, fech
     }
 }
 
+export async function notificacionActualizacionAgendamiento({ telefono, nombre, clinica, fecha, hora }) {
+    const enviado = await notificacionAgendamiento({ telefono, nombre, clinica, fecha, hora });
+    if (enviado) {
+        console.log(`[WSP] Notificación de actualización enviada a ${nombre} (${fecha} ${hora})`);
+    }
+    return enviado;
+}
+
 
 
 

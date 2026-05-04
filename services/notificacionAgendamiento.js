@@ -1,4 +1,124 @@
 export default class NotificacionAgendamiento {
+    static async enviarCorreoActualizacionReserva({
+                                                      to,
+                                                      nombrePaciente,
+                                                      apellidoPaciente,
+                                                      rut,
+                                                      telefono,
+                                                      fechaInicio,
+                                                      horaInicio,
+                                                      fechaFinalizacion,
+                                                      horaFinalizacion,
+                                                      estadoReserva,
+                                                      id_reserva
+                                                  }) {
+        const { BREVO_API_KEY, NOMBRE_EMPRESA } = process.env;
+
+        if (!BREVO_API_KEY) {
+            console.warn("[MAIL] BREVO_API_KEY no configurada. Correo no enviado.");
+            return;
+        }
+
+        if (!to) {
+            console.warn("[MAIL] Destinatario vacío. Correo no enviado.");
+            return;
+        }
+
+        const emailOk = typeof to === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to);
+        if (!emailOk) {
+            console.warn("[MAIL] Email inválido:", to, "Correo no enviado.");
+            return;
+        }
+
+        const fromEmail = process.env.CORREO_REMITENTE || "desarrollo.native.code@gmail.com";
+        const fromName = NOMBRE_EMPRESA || "Sistema de Agendamiento";
+
+        if (!fromEmail) {
+            console.warn("[MAIL] CORREO_REMITENTE no configurado. Correo no enviado.");
+            return;
+        }
+
+        const subject = `Tu cita en ${fromName} ha sido actualizada`;
+
+        const baseUrl = process.env.BACKEND_URL || "https://siluetachic.nativecode.cl";
+        const urlConfirmar = `${baseUrl}/notificacion/confirmar?id_reserva=${id_reserva}&nombrePaciente=${encodeURIComponent(nombrePaciente)}&apellidoPaciente=${encodeURIComponent(apellidoPaciente)}&fechaInicio=${encodeURIComponent(fechaInicio)}&horaInicio=${encodeURIComponent(horaInicio)}`;
+        const urlCancelar = `${baseUrl}/notificacion/cancelar?id_reserva=${id_reserva}&nombrePaciente=${encodeURIComponent(nombrePaciente)}&apellidoPaciente=${encodeURIComponent(apellidoPaciente)}&fechaInicio=${encodeURIComponent(fechaInicio)}&horaInicio=${encodeURIComponent(horaInicio)}`;
+        const empresa = process.env.NOMBRE_EMPRESA || "Sistema de Agendamiento";
+
+        const text =
+            `Tu cita en ${empresa} ha sido actualizada.\n\n` +
+            `Detalle actualizado:\n` +
+            `• Nombre: ${nombrePaciente} ${apellidoPaciente}\n` +
+            `• RUT: ${rut}\n` +
+            `• Teléfono: ${telefono}\n` +
+            `• Inicio: ${fechaInicio} ${horaInicio}\n` +
+            `• Término: ${fechaFinalizacion} ${horaFinalizacion}\n` +
+            `• Estado: ${estadoReserva}\n\n` +
+            `Te pedimos confirmar tu asistencia con la nueva fecha/hora usando los enlaces de este correo.\n` +
+            `Si no puedes asistir, por favor cancela con anticipación.\n\n` +
+            `Saludos, ${empresa}.`;
+
+        const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111; max-width: 600px; margin: 0 auto;">
+        <div style="background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">Tu cita en ${fromName} ha sido actualizada</h2>
+        </div>
+
+        <div style="padding: 20px; background: #ffffff; border: 1px solid #e5e7eb; border-top: none;">
+          <p>Hola <b>${nombrePaciente} ${apellidoPaciente}</b>,</p>
+          <p>Te informamos que tu cita fue modificada. Este es el nuevo detalle:</p>
+
+          <table style="width: 100%; background: #f3f4f6; padding: 15px; border-radius: 8px; border-collapse: collapse;">
+            <tr><td style="padding: 8px;"><b>RUT:</b></td><td style="padding: 8px;">${rut}</td></tr>
+            <tr><td style="padding: 8px;"><b>Teléfono:</b></td><td style="padding: 8px;">${telefono}</td></tr>
+            <tr><td style="padding: 8px;"><b>Inicio:</b></td><td style="padding: 8px;">${fechaInicio} ${horaInicio}</td></tr>
+            <tr><td style="padding: 8px;"><b>Término:</b></td><td style="padding: 8px;">${fechaFinalizacion} ${horaFinalizacion}</td></tr>
+            <tr><td style="padding: 8px;"><b>Estado:</b></td><td style="padding: 8px;">${estadoReserva}</td></tr>
+          </table>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <p style="margin-bottom: 15px; font-weight: bold; color: #374151;">Confirma tu asistencia con el nuevo horario</p>
+            <a href="${urlConfirmar}" style="display: inline-block; background: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 0 10px; font-weight: bold;">Confirmar Cita</a>
+            <a href="${urlCancelar}" style="display: inline-block; background: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 0 10px; font-weight: bold;">Cancelar Cita</a>
+          </div>
+        </div>
+      </div>
+    `;
+
+        const payload = {
+            sender: { name: fromName, email: fromEmail },
+            to: [{ email: to }],
+            subject,
+            textContent: text,
+            htmlContent: html
+        };
+
+        if (typeof fetch !== "function") {
+            console.warn("[MAIL] Tu Node no tiene fetch (requiere Node 18+). Correo no enviado.");
+            return;
+        }
+
+        console.log("[MAIL] Enviando actualización a:", to, "| id_reserva:", id_reserva, "| from:", fromEmail);
+
+        const resp = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+                accept: "application/json",
+                "content-type": "application/json",
+                "api-key": BREVO_API_KEY
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            const errText = await resp.text().catch(() => "");
+            console.error("[MAIL] Brevo error:", resp.status, errText);
+            return;
+        }
+
+        console.log("[MAIL] Actualización enviada OK a:", to, "| id_reserva:", id_reserva);
+    }
+
     static async enviarCorreoConfirmacionReserva({
                                                      to,
                                                      nombrePaciente,
@@ -187,6 +307,19 @@ export default class NotificacionAgendamiento {
                 colorAccion = "#3b82f6"; // Azul para nueva reserva
                 detalleAccion = "La reserva fue creada manualmente desde la agenda clínica.";
                 text = `Se ha creado una nueva reserva desde la agenda clínica para ${nombrePaciente} ${apellidoPaciente}.\n\n` +
+                    `• ID Reserva: ${id_reserva}\n` +
+                    `• Fecha: ${fechaInicio}\n` +
+                    `• Hora: ${horaInicio}\n\n` +
+                    `${detalleAccion}`;
+                break;
+
+            case "ACTUALIZADA":
+                subject = `🔄 Cita ACTUALIZADA - ${nombrePaciente} ${apellidoPaciente}`;
+                textoAccion = "ACTUALIZADA";
+                iconoAccion = "🔄";
+                colorAccion = "#2563eb";
+                detalleAccion = "La reserva fue actualizada desde la agenda clínica.";
+                text = `Se actualizó una reserva para ${nombrePaciente} ${apellidoPaciente}.\n\n` +
                     `• ID Reserva: ${id_reserva}\n` +
                     `• Fecha: ${fechaInicio}\n` +
                     `• Hora: ${horaInicio}\n\n` +

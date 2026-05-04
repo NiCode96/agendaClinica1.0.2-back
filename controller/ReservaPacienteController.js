@@ -1,7 +1,7 @@
 import ReservaPacientes from "../model/ReservaPacientes.js";
 import Pacientes from "../model/Pacientes.js";
 import NotificacionAgendamiento from "../services/notificacionAgendamiento.js";
-import { notificacionAgendamiento } from "../services/notificacionWhatsApp.js";
+import { notificacionAgendamiento, notificacionActualizacionAgendamiento } from "../services/notificacionWhatsApp.js";
 
 function responderErrorReserva(res, error) {
     if (error?.code === "CONFLICTO_AGENDA") {
@@ -206,6 +206,48 @@ export default class ReservaPacienteController {
             const resultadoQuery = await claseReservaPaciente.actualizarReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva);
 
             if (resultadoQuery.affectedRows > 0) {
+                const correoNormalizado = email && String(email).trim() ? String(email).trim() : null;
+
+                if (correoNormalizado) {
+                    try {
+                        await NotificacionAgendamiento.enviarCorreoActualizacionReserva({
+                            to: correoNormalizado,
+                            nombrePaciente,
+                            apellidoPaciente,
+                            rut,
+                            telefono,
+                            fechaInicio,
+                            horaInicio,
+                            fechaFinalizacion,
+                            horaFinalizacion,
+                            estadoReserva,
+                            id_reserva
+                        });
+                    } catch (err) {
+                        console.error("[MAIL] Error actualización:", err.message);
+                    }
+                }
+
+                NotificacionAgendamiento.enviarCorreoConfirmacionEquipo({
+                    nombrePaciente,
+                    apellidoPaciente,
+                    fechaInicio,
+                    horaInicio,
+                    accion: "ACTUALIZADA",
+                    id_reserva
+                }).catch(err => {
+                    console.error("[MAIL EQUIPO] Error actualización:", err.message);
+                });
+
+                notificacionActualizacionAgendamiento({
+                    telefono,
+                    nombre: nombrePaciente,
+                    fecha: fechaInicio,
+                    hora: horaInicio
+                }).catch(err => {
+                    console.error("[WSP] Error actualización:", err.message);
+                });
+
                 return res.status(200).json({message: true});
             } else {
                 return res.status(200).json({message: false});
