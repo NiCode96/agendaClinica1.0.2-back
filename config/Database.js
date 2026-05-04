@@ -32,6 +32,10 @@ class DataBase {
         return rows;
     }
 
+    async obtenerConexion() {
+        return this.pool.getConnection();
+    }
+
     static getInstance() {
         if (!this.instance) {
             this.instance = new DataBase();

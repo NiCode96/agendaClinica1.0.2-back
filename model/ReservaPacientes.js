@@ -1,5 +1,8 @@
 import DataBase from "../config/Database.js";
 
+const LOCK_TIMEOUT_SECONDS = 10;
+const CODIGO_CONFLICTO_AGENDA = "CONFLICTO_AGENDA";
+const CODIGO_BLOQUEO_TIMEOUT = "BLOQUEO_AGENDA_TIMEOUT";
 
 export default class ReservaPacientes {
     constructor(
@@ -33,6 +36,94 @@ export default class ReservaPacientes {
         this.preference_id = preference_id;
         this.id_profesional = id_profesional;
 
+    }
+
+    crearErrorAgenda(codigo, mensaje) {
+        const error = new Error(mensaje);
+        error.code = codigo;
+        return error;
+    }
+
+    construirClaveBloqueoAgenda(id_profesional) {
+        return `agenda_profesional_${id_profesional}`;
+    }
+
+    async obtenerConexionConBloqueoAgenda(id_profesional) {
+        const conexion = DataBase.getInstance();
+        const connection = await conexion.obtenerConexion();
+        const lockKey = this.construirClaveBloqueoAgenda(id_profesional);
+        let lockTomado = false;
+
+        try {
+            const [rows] = await connection.query("SELECT GET_LOCK(?, ?) AS lockStatus", [lockKey, LOCK_TIMEOUT_SECONDS]);
+            lockTomado = Number(rows?.[0]?.lockStatus) === 1;
+
+            if (!lockTomado) {
+                throw this.crearErrorAgenda(
+                    CODIGO_BLOQUEO_TIMEOUT,
+                    "No fue posible asegurar el horario en este momento. Intente nuevamente."
+                );
+            }
+
+            return {connection, lockKey};
+        } catch (error) {
+            if (lockTomado) {
+                try {
+                    await connection.query("SELECT RELEASE_LOCK(?)", [lockKey]);
+                } catch (_) {
+                }
+            }
+
+            connection.release();
+            throw error;
+        }
+    }
+
+    async liberarConexionConBloqueoAgenda(connection, lockKey) {
+        try {
+            await connection.query("SELECT RELEASE_LOCK(?)", [lockKey]);
+        } catch (_) {
+        } finally {
+            connection.release();
+        }
+    }
+
+    async validarDisponibilidadEnConexion(connection, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, id_profesional, id_reservaExcluir = null) {
+        const query = `
+SELECT COUNT(*) AS cnt FROM (
+      SELECT id_reserva AS id
+      FROM reservaPacientes
+      WHERE id_profesional = ?
+      AND estadoReserva <> 'cancelada'
+      AND (? IS NULL OR id_reserva <> ?)
+      AND NOT (
+        TIMESTAMP(fechaFinalizacion, horaFinalizacion) <= TIMESTAMP(?, ?)
+        OR TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
+      )
+      UNION ALL
+      SELECT id_bloqueo AS id
+      FROM bloqueoAgenda
+      WHERE id_profesional = ?
+      AND estado_bloqueoAgenda <> 0
+      AND ? >= fechaInicio
+      AND ? <= fechaFinalizacion
+      AND NOT (
+        horaFinalizacion <= ?
+        OR horaInicio >= ?
+      )
+    ) AS conflictos
+    `;
+
+        const params = [
+            id_profesional,
+            id_reservaExcluir, id_reservaExcluir,
+            fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion,
+            id_profesional, fechaInicio, fechaInicio, horaInicio, horaFinalizacion
+        ];
+
+        const [filas] = await connection.query(query, params);
+        const cnt = Array.isArray(filas) ? filas[0]?.cnt : filas?.cnt;
+        return Number(cnt) === 0;
     }
 
 
@@ -75,17 +166,32 @@ export default class ReservaPacientes {
     //METODO PARA ACTUALZIAR NUEVAS CITAS MEDICAS
     // Al actualizar se resetean los flags de recordatorio para que se reenvíen con la nueva fecha/hora
     async actualizarReserva(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva) {
-        try {
-            const conexion = DataBase.getInstance();
-            const query = 'UPDATE reservaPacientes SET nombrePaciente = ? , apellidoPaciente = ?, rut = ? , telefono = ? , email = ? , fechaInicio = ?  , horaInicio = ? , fechaFinalizacion = ? , horaFinalizacion = ? , estadoReserva = ? , id_profesional = ? , recordatorio12h = 0, recordatorio6h = 0, wspRecordatorio12h = 0, wspRecordatorio6h = 0, wspRecordatorio1h = 0 WHERE id_reserva = ?';
-            const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva]
-            const resultadoQuery = await conexion.ejecutarQuery(query, param);
+        const {connection, lockKey} = await this.obtenerConexionConBloqueoAgenda(id_profesional);
 
-            if (resultadoQuery) {
-                return resultadoQuery;
+        try {
+            const disponible = await this.validarDisponibilidadEnConexion(
+                connection,
+                fechaInicio,
+                horaInicio,
+                fechaFinalizacion,
+                horaFinalizacion,
+                id_profesional,
+                id_reserva
+            );
+
+            if (!disponible) {
+                throw this.crearErrorAgenda(
+                    CODIGO_CONFLICTO_AGENDA,
+                    "El horario ya fue tomado por otra reserva o bloqueo."
+                );
             }
-        } catch (e) {
-            throw new Error(e)
+
+            const query = "UPDATE reservaPacientes SET nombrePaciente = ? , apellidoPaciente = ?, rut = ? , telefono = ? , email = ? , fechaInicio = ?  , horaInicio = ? , fechaFinalizacion = ? , horaFinalizacion = ? , estadoReserva = ? , id_profesional = ? , recordatorio12h = 0, recordatorio6h = 0, wspRecordatorio12h = 0, wspRecordatorio6h = 0, wspRecordatorio1h = 0 WHERE id_reserva = ?";
+            const params = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional, id_reserva];
+            const [resultadoQuery] = await connection.query(query, params);
+            return resultadoQuery;
+        } finally {
+            await this.liberarConexionConBloqueoAgenda(connection, lockKey);
         }
     }
 
@@ -146,57 +252,51 @@ export default class ReservaPacientes {
 
     //METODO PARA INSERTAR NUEVAS CITAS MEDICAS
     async insertarReservaPaciente(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional) {
-        try {
-            const conexion = DataBase.getInstance();
-            const query = 'INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?)';
-            const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional];
+        const {connection, lockKey} = await this.obtenerConexionConBloqueoAgenda(id_profesional);
 
-            const resultadoQuery = await conexion.ejecutarQuery(query, param);
-            if (resultadoQuery) {
-                return resultadoQuery;
+        try {
+            const disponible = await this.validarDisponibilidadEnConexion(
+                connection,
+                fechaInicio,
+                horaInicio,
+                fechaFinalizacion,
+                horaFinalizacion,
+                id_profesional
+            );
+
+            if (!disponible) {
+                throw this.crearErrorAgenda(
+                    CODIGO_CONFLICTO_AGENDA,
+                    "El horario ya fue tomado por otra reserva o bloqueo."
+                );
             }
-        } catch (e) {
-            throw new Error(e)
+
+            const query = "INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+            const params = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, id_profesional];
+            const [resultadoQuery] = await connection.query(query, params);
+            return resultadoQuery;
+        } finally {
+            await this.liberarConexionConBloqueoAgenda(connection, lockKey);
         }
     }
 
 //DEVUELVE UN VALOR booleano PARA EVALUAR SI LAS HORAS MEDICAS SE SUPERPONEN CON RESERVAS O BLOQUEOS
     async validarDisponibilidadBoolean(fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, id_profesional) {
         const conexion = DataBase.getInstance();
+        const connection = await conexion.obtenerConexion();
 
-        const query = `
-SELECT COUNT(*) AS cnt FROM (
-      SELECT id_reserva AS id
-      FROM reservaPacientes
-      WHERE id_profesional = ?
-      AND estadoPeticion <> 0
-      AND estadoReserva <> 'cancelada'
-      AND NOT (
-        TIMESTAMP(fechaFinalizacion, horaFinalizacion) <= TIMESTAMP(?, ?)
-        OR TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
-      )
-      UNION ALL
-      SELECT id_bloqueo AS id
-      FROM bloqueoAgenda
-      WHERE id_profesional = ?
-      AND estado_bloqueoAgenda <> 0
-      AND ? >= fechaInicio
-      AND ? <= fechaFinalizacion
-      AND NOT (
-        horaFinalizacion <= ?
-        OR horaInicio >= ?
-      )
-    ) AS conflictos
-    `;
-
-        const params = [
-            id_profesional, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion,
-            id_profesional, fechaInicio, fechaInicio, horaInicio, horaFinalizacion
-        ];
-        const filas = await conexion.ejecutarQuery(query, params);
-
-        const cnt = Array.isArray(filas) ? filas[0].cnt : filas.cnt;
-        return cnt === 0; // true = disponible, false = hay conflicto con reserva o bloqueo
+        try {
+            return await this.validarDisponibilidadEnConexion(
+                connection,
+                fechaInicio,
+                horaInicio,
+                fechaFinalizacion,
+                horaFinalizacion,
+                id_profesional
+            );
+        } finally {
+            connection.release();
+        }
     }
 
 
@@ -295,17 +395,31 @@ SELECT COUNT(*) AS cnt FROM (
 
     //METODO PARA INSERTAR NUEVAS CITAS MEDICAS DESDE METODOS INTERNOS DEL BACKEND COMO MERCADO PAGO
     async insertarReservaPacienteBackend(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion,id_profesional) {
-        try {
-            const conexion = DataBase.getInstance();
-            const query = 'INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion,id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)';
-            const param = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id,estadoPeticion,id_profesional];
+        const {connection, lockKey} = await this.obtenerConexionConBloqueoAgenda(id_profesional);
 
-            const resultadoQuery = await conexion.ejecutarQuery(query, param);
-            if (resultadoQuery) {
-                return resultadoQuery;
+        try {
+            const disponible = await this.validarDisponibilidadEnConexion(
+                connection,
+                fechaInicio,
+                horaInicio,
+                fechaFinalizacion,
+                horaFinalizacion,
+                id_profesional
+            );
+
+            if (!disponible) {
+                throw this.crearErrorAgenda(
+                    CODIGO_CONFLICTO_AGENDA,
+                    "El horario ya fue tomado por otra reserva o bloqueo."
+                );
             }
-        } catch (e) {
-            throw new Error(e)
+
+            const query = "INSERT INTO reservaPacientes(nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio,fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion,id_profesional) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            const params = [nombrePaciente, apellidoPaciente, rut, telefono, email, fechaInicio, horaInicio, fechaFinalizacion, horaFinalizacion, estadoReserva, preference_id, estadoPeticion, id_profesional];
+            const [resultadoQuery] = await connection.query(query, params);
+            return resultadoQuery;
+        } finally {
+            await this.liberarConexionConBloqueoAgenda(connection, lockKey);
         }
     }
 

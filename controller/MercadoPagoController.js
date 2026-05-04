@@ -107,6 +107,9 @@ export const createOrder = async (req, res) => {
                 return res.status(500).json({ error: 'No se pudo insertar la reserva' });
             }
         } catch (errReserva) {
+            if (errReserva?.code === 'CONFLICTO_AGENDA') {
+                return res.status(409).json({ error: 'Horario no disponible', message: 'conflicto' });
+            }
             console.error('Error insertando reserva desde createOrder:', errReserva);
             return res.status(500).json({ error: 'Error al insertar la reserva', details: errReserva.message });
         }
