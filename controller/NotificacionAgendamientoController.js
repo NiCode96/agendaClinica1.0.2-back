@@ -17,9 +17,6 @@ function parsearPayloadRespuestaWhatsApp(payload = "") {
 function formatearFechaCorta(fecha) {
   if (!fecha) return "";
 
-  const valor = String(fecha).slice(0, 10);
-  const [year, month, day] = valor.split("-");
-  if (!year || !month || !day) return String(fecha);
   const meses = [
     "enero",
     "febrero",
@@ -34,6 +31,29 @@ function formatearFechaCorta(fecha) {
     "noviembre",
     "diciembre"
   ];
+
+  const valor = String(fecha).trim();
+  const matchIso = valor.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (matchIso) {
+    const [, year, month, day] = matchIso;
+    const mesIndice = Number(month) - 1;
+    const mesTexto = meses[mesIndice] || month;
+    return `${Number(day)} de ${mesTexto} de ${year}`;
+  }
+
+  const fechaDate = new Date(valor);
+  if (!Number.isNaN(fechaDate.getTime())) {
+    return fechaDate.toLocaleDateString("es-CL", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "America/Santiago"
+    });
+  }
+
+  const fallback = valor.slice(0, 10);
+  const [year, month, day] = fallback.split("-");
+  if (!year || !month || !day) return String(fecha);
   const mesIndice = Number(month) - 1;
   const mesTexto = meses[mesIndice] || month;
   return `${Number(day)} de ${mesTexto} de ${year}`;
@@ -42,6 +62,31 @@ function formatearFechaCorta(fecha) {
 function formatearHoraCorta(hora) {
   if (!hora) return "";
   return String(hora).slice(0, 5);
+}
+
+function normalizarFechaInput(fecha) {
+  if (!fecha) return "";
+  const valor = String(fecha).trim();
+  const matchIso = valor.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (matchIso) return `${matchIso[1]}-${matchIso[2]}-${matchIso[3]}`;
+
+  const fechaDate = new Date(valor);
+  if (Number.isNaN(fechaDate.getTime())) return valor;
+
+  const year = fechaDate.toLocaleDateString("en-CA", {
+    year: "numeric",
+    timeZone: "America/Santiago"
+  });
+  const month = fechaDate.toLocaleDateString("en-CA", {
+    month: "2-digit",
+    timeZone: "America/Santiago"
+  });
+  const day = fechaDate.toLocaleDateString("en-CA", {
+    day: "2-digit",
+    timeZone: "America/Santiago"
+  });
+
+  return `${year}-${month}-${day}`;
 }
 
 async function completarDatosReservaDesdeId(datosReserva) {
@@ -95,6 +140,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const fechaInput = normalizarFechaInput(fechaInicio);
       const logoSistema = "/logoAC3.png";
 
       // GET siempre muestra la página de confirmación con formulario POST
@@ -180,7 +226,7 @@ export default class NotificacionAgendamientoController {
               <input type="hidden" name="id_reserva" value="${id_reserva}" />
               <input type="hidden" name="nombrePaciente" value="${nombrePaciente}" />
               <input type="hidden" name="apellidoPaciente" value="${apellidoPaciente}" />
-              <input type="hidden" name="fechaInicio" value="${fechaInicio}" />
+              <input type="hidden" name="fechaInicio" value="${fechaInput}" />
               <input type="hidden" name="horaInicio" value="${horaInicio}" />
               ${token ? `<input type="hidden" name="token" value="${token}" />` : ""}
               <button type="submit" class="btn btn-confirm">✅ Sí, confirmar mi cita</button>
@@ -229,6 +275,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const fechaInput = normalizarFechaInput(fechaInicio);
       const logoSistema = "/logoAC3.png";
 
       const reservaPacienteClass = new ReservaPacientes();
@@ -501,7 +548,7 @@ export default class NotificacionAgendamientoController {
               <input type="hidden" name="id_reserva" value="${id_reserva}" />
               <input type="hidden" name="nombrePaciente" value="${nombrePaciente}" />
               <input type="hidden" name="apellidoPaciente" value="${apellidoPaciente}" />
-              <input type="hidden" name="fechaInicio" value="${fechaInicio}" />
+              <input type="hidden" name="fechaInicio" value="${fechaInput}" />
               <input type="hidden" name="horaInicio" value="${horaInicio}" />
               ${token ? `<input type="hidden" name="token" value="${token}" />` : ""}
               <button type="submit" class="btn btn-cancel">❌ Sí, cancelar mi cita</button>
