@@ -14,6 +14,20 @@ function parsearPayloadRespuestaWhatsApp(payload = "") {
   return { accion, id_reserva };
 }
 
+function formatearFechaCorta(fecha) {
+  if (!fecha) return "";
+
+  const valor = String(fecha).slice(0, 10);
+  const [year, month, day] = valor.split("-");
+  if (!year || !month || !day) return String(fecha);
+  return `${day}/${month}/${year}`;
+}
+
+function formatearHoraCorta(hora) {
+  if (!hora) return "";
+  return String(hora).slice(0, 5);
+}
+
 async function completarDatosReservaDesdeId(datosReserva) {
   if (!datosReserva?.id_reserva) return null;
   if (datosReserva.nombrePaciente && datosReserva.apellidoPaciente && datosReserva.fechaInicio && datosReserva.horaInicio) {
@@ -46,6 +60,7 @@ export default class NotificacionAgendamientoController {
       const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
+      const nombreSistema = "AgendaClinica Healthcare Information System";
 
       if (!datosReserva) {
         return res.status(400).json({
@@ -62,6 +77,8 @@ export default class NotificacionAgendamientoController {
         horaInicio,
         token
       } = datosReserva;
+      const fechaFormateada = formatearFechaCorta(fechaInicio);
+      const horaFormateada = formatearHoraCorta(horaInicio);
 
       // GET siempre muestra la página de confirmación con formulario POST
       // Los clientes de correo NO ejecutan formularios POST, solo GET
@@ -80,19 +97,28 @@ export default class NotificacionAgendamientoController {
               align-items: center;
               min-height: 100vh;
               margin: 0;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 100%);
             }
             .container {
               background: white;
               padding: 40px;
               border-radius: 10px;
-              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+              box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
               text-align: center;
               max-width: 500px;
+              border: 1px solid #dbeafe;
             }
-            h1 { color: #10b981; margin-bottom: 20px; }
-            p { color: #374151; line-height: 1.6; margin-bottom: 10px; }
+            h1 { color: #0f4c81; margin-bottom: 20px; }
+            p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
             .icon { font-size: 64px; margin-bottom: 20px; }
+            .eyebrow {
+              color: #1d4ed8;
+              font-size: 12px;
+              font-weight: 700;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              margin-bottom: 16px;
+            }
             .btn {
               display: inline-block;
               padding: 14px 32px;
@@ -103,26 +129,28 @@ export default class NotificacionAgendamientoController {
               cursor: pointer;
               margin: 10px;
             }
-            .btn-confirm { background: #10b981; color: white; }
-            .btn-confirm:hover { background: #059669; }
+            .btn-confirm { background: #1d4ed8; color: white; }
+            .btn-confirm:hover { background: #1e40af; }
             .detail-box {
-              background: #f3f4f6;
+              background: #eff6ff;
               padding: 15px;
               border-radius: 8px;
               margin: 20px 0;
               text-align: left;
+              border: 1px solid #bfdbfe;
             }
           </style>
         </head>
         <body>
           <div class="container">
+            <div class="eyebrow">${nombreSistema}</div>
             <div class="icon">📅</div>
             <h1>¿Confirmar tu cita?</h1>
             <p>Estás a punto de confirmar la siguiente cita:</p>
             <div class="detail-box">
               <p><strong>Paciente:</strong> ${nombrePaciente} ${apellidoPaciente}</p>
-              <p><strong>Fecha:</strong> ${fechaInicio}</p>
-              <p><strong>Hora:</strong> ${horaInicio}</p>
+              <p><strong>Fecha:</strong> ${fechaFormateada}</p>
+              <p><strong>Hora:</strong> ${horaFormateada}</p>
             </div>
             <p>Haz clic en el botón para confirmar tu asistencia:</p>
             <form method="POST" action="/notificacion/confirmar/ejecutar" style="margin-top: 20px;">
@@ -160,6 +188,7 @@ export default class NotificacionAgendamientoController {
       const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
+      const nombreSistema = "AgendaClinica Healthcare Information System";
 
       if (!datosReserva) {
         return res.status(400).json({
@@ -175,6 +204,8 @@ export default class NotificacionAgendamientoController {
         fechaInicio,
         horaInicio
       } = datosReserva;
+      const fechaFormateada = formatearFechaCorta(fechaInicio);
+      const horaFormateada = formatearHoraCorta(horaInicio);
 
       const reservaPacienteClass = new ReservaPacientes();
       const estadoReserva = "CONFIRMADA";
@@ -210,27 +241,37 @@ export default class NotificacionAgendamientoController {
                   align-items: center;
                   min-height: 100vh;
                   margin: 0;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 100%);
                 }
                 .container {
                   background: white;
                   padding: 40px;
                   border-radius: 10px;
-                  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
                   text-align: center;
                   max-width: 500px;
+                  border: 1px solid #dbeafe;
                 }
-                h1 { color: #10b981; margin-bottom: 20px; }
-                p { color: #374151; line-height: 1.6; margin-bottom: 10px; }
+                h1 { color: #0f4c81; margin-bottom: 20px; }
+                p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
                 .icon { font-size: 64px; margin-bottom: 20px; }
+                .eyebrow {
+                  color: #1d4ed8;
+                  font-size: 12px;
+                  font-weight: 700;
+                  letter-spacing: 0.08em;
+                  text-transform: uppercase;
+                  margin-bottom: 16px;
+                }
               </style>
             </head>
             <body>
               <div class="container">
+                <div class="eyebrow">${nombreSistema}</div>
                 <div class="icon">✅</div>
                 <h1>¡Cita Confirmada!</h1>
                 <p><strong>${nombrePaciente} ${apellidoPaciente}</strong></p>
-                <p>Tu cita para el <strong>${new Date(fechaInicio).toLocaleDateString("es-CL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</strong> a las <strong>${horaInicio}</strong> ha sido confirmada exitosamente.</p>
+                <p>Tu cita para el <strong>${fechaFormateada}</strong> a las <strong>${horaFormateada}</strong> ha sido confirmada exitosamente.</p>
                 <p>Hemos notificado a nuestro equipo de tu confirmacion.</p>
                 <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
                   Nos vemos pronto en ${empresa}.
@@ -315,6 +356,7 @@ export default class NotificacionAgendamientoController {
       const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
+      const nombreSistema = "AgendaClinica Healthcare Information System";
 
       if (!datosReserva) {
         return res.status(400).json({
@@ -331,6 +373,8 @@ export default class NotificacionAgendamientoController {
         horaInicio,
         token
       } = datosReserva;
+      const fechaFormateada = formatearFechaCorta(fechaInicio);
+      const horaFormateada = formatearHoraCorta(horaInicio);
 
       // GET siempre muestra la página de confirmación con formulario POST
       return res.send(`
@@ -348,19 +392,28 @@ export default class NotificacionAgendamientoController {
               align-items: center;
               min-height: 100vh;
               margin: 0;
-              background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+              background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 100%);
             }
             .container {
               background: white;
               padding: 40px;
               border-radius: 10px;
-              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+              box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
               text-align: center;
               max-width: 500px;
+              border: 1px solid #dbeafe;
             }
-            h1 { color: #ef4444; margin-bottom: 20px; }
-            p { color: #374151; line-height: 1.6; margin-bottom: 10px; }
+            h1 { color: #0f4c81; margin-bottom: 20px; }
+            p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
             .icon { font-size: 64px; margin-bottom: 20px; }
+            .eyebrow {
+              color: #1d4ed8;
+              font-size: 12px;
+              font-weight: 700;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              margin-bottom: 16px;
+            }
             .btn {
               display: inline-block;
               padding: 14px 32px;
@@ -371,36 +424,37 @@ export default class NotificacionAgendamientoController {
               cursor: pointer;
               margin: 10px;
             }
-            .btn-cancel { background: #ef4444; color: white; }
-            .btn-cancel:hover { background: #dc2626; }
+            .btn-cancel { background: #1e3a8a; color: white; }
+            .btn-cancel:hover { background: #1e40af; }
             .detail-box {
-              background: #fef2f2;
+              background: #eff6ff;
               padding: 15px;
               border-radius: 8px;
               margin: 20px 0;
               text-align: left;
-              border: 1px solid #fecaca;
+              border: 1px solid #bfdbfe;
             }
             .warning {
-              background: #fef3c7;
-              border: 1px solid #f59e0b;
+              background: #e0f2fe;
+              border: 1px solid #7dd3fc;
               padding: 12px;
               border-radius: 6px;
               margin: 15px 0;
               font-size: 14px;
-              color: #92400e;
+              color: #0f4c81;
             }
           </style>
         </head>
         <body>
           <div class="container">
+            <div class="eyebrow">${nombreSistema}</div>
             <div class="icon">⚠️</div>
             <h1>¿Cancelar tu cita?</h1>
             <p>Estás a punto de cancelar la siguiente cita:</p>
             <div class="detail-box">
               <p><strong>Paciente:</strong> ${nombrePaciente} ${apellidoPaciente}</p>
-              <p><strong>Fecha:</strong> ${fechaInicio}</p>
-              <p><strong>Hora:</strong> ${horaInicio}</p>
+              <p><strong>Fecha:</strong> ${fechaFormateada}</p>
+              <p><strong>Hora:</strong> ${horaFormateada}</p>
             </div>
             <div class="warning">
               ⚠️ <strong>Importante:</strong> Esta acción no se puede deshacer. Si cancelas, deberás agendar una nueva cita.
@@ -441,6 +495,7 @@ export default class NotificacionAgendamientoController {
       const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
+      const nombreSistema = "AgendaClinica Healthcare Information System";
 
       if (!datosReserva) {
         return res.status(400).json({
@@ -456,6 +511,8 @@ export default class NotificacionAgendamientoController {
         fechaInicio,
         horaInicio
       } = datosReserva;
+      const fechaFormateada = formatearFechaCorta(fechaInicio);
+      const horaFormateada = formatearHoraCorta(horaInicio);
 
       const reservaPacienteClass = new ReservaPacientes();
       const estadoReserva = "ANULADA";
@@ -491,27 +548,37 @@ export default class NotificacionAgendamientoController {
                   align-items: center;
                   min-height: 100vh;
                   margin: 0;
-                  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                  background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 100%);
                 }
                 .container {
                   background: white;
                   padding: 40px;
                   border-radius: 10px;
-                  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
                   text-align: center;
                   max-width: 500px;
+                  border: 1px solid #dbeafe;
                 }
-                h1 { color: #ef4444; margin-bottom: 20px; }
-                p { color: #374151; line-height: 1.6; margin-bottom: 10px; }
+                h1 { color: #0f4c81; margin-bottom: 20px; }
+                p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
                 .icon { font-size: 64px; margin-bottom: 20px; }
+                .eyebrow {
+                  color: #1d4ed8;
+                  font-size: 12px;
+                  font-weight: 700;
+                  letter-spacing: 0.08em;
+                  text-transform: uppercase;
+                  margin-bottom: 16px;
+                }
               </style>
             </head>
             <body>
               <div class="container">
+                <div class="eyebrow">${nombreSistema}</div>
                 <div class="icon">❌</div>
                 <h1>Cita Cancelada</h1>
                 <p><strong>${nombrePaciente} ${apellidoPaciente}</strong></p>
-                <p>Tu cita para el <strong>${new Date(fechaInicio).toLocaleDateString("es-CL", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</strong> a las <strong>${horaInicio}</strong> ha sido cancelada.</p>
+                <p>Tu cita para el <strong>${fechaFormateada}</strong> a las <strong>${horaFormateada}</strong> ha sido cancelada.</p>
                 <p>Hemos notificado a nuestro equipo de tu cancelacion.</p>
                 <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
                   Esperamos verte pronto en ${empresa}.
