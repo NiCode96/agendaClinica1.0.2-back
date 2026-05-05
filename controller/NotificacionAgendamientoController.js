@@ -14,6 +14,26 @@ function parsearPayloadRespuestaWhatsApp(payload = "") {
   return { accion, id_reserva };
 }
 
+async function completarDatosReservaDesdeId(datosReserva) {
+  if (!datosReserva?.id_reserva) return null;
+  if (datosReserva.nombrePaciente && datosReserva.apellidoPaciente && datosReserva.fechaInicio && datosReserva.horaInicio) {
+    return datosReserva;
+  }
+
+  const reservaPacienteClass = new ReservaPacientes();
+  const dataReserva = await reservaPacienteClass.seleccionarFichasReservadasEspecifica(datosReserva.id_reserva);
+  const reserva = Array.isArray(dataReserva) && dataReserva.length > 0 ? dataReserva[0] : null;
+  if (!reserva) return null;
+
+  return {
+    ...datosReserva,
+    nombrePaciente: reserva.nombrePaciente,
+    apellidoPaciente: reserva.apellidoPaciente,
+    fechaInicio: reserva.fechaInicio,
+    horaInicio: reserva.horaInicio
+  };
+}
+
 export default class NotificacionAgendamientoController {
 
   /**
@@ -23,7 +43,7 @@ export default class NotificacionAgendamientoController {
    */
   static async confirmarCita(req, res) {
     try {
-      const datosReserva = resolverDatosReservaDesdeRequest(req);
+      const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
 
@@ -137,7 +157,7 @@ export default class NotificacionAgendamientoController {
    */
   static async ejecutarConfirmacion(req, res) {
     try {
-      const datosReserva = resolverDatosReservaDesdeRequest(req);
+      const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
 
@@ -292,7 +312,7 @@ export default class NotificacionAgendamientoController {
    */
   static async cancelarCita(req, res) {
     try {
-      const datosReserva = resolverDatosReservaDesdeRequest(req);
+      const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
 
@@ -418,7 +438,7 @@ export default class NotificacionAgendamientoController {
    */
   static async ejecutarCancelacion(req, res) {
     try {
-      const datosReserva = resolverDatosReservaDesdeRequest(req);
+      const datosReserva = await completarDatosReservaDesdeId(resolverDatosReservaDesdeRequest(req));
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
 

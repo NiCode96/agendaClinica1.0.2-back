@@ -23,27 +23,14 @@ function firmarPayload(payloadCodificado) {
 
 export function generarTokenReserva({
     id_reserva,
-    nombrePaciente,
-    apellidoPaciente,
-    fechaInicio,
-    horaInicio
 }) {
-    if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
+    if (!id_reserva) {
         return null;
     }
 
-    const payload = {
-        v: 1,
-        id_reserva: Number(id_reserva),
-        nombrePaciente: String(nombrePaciente),
-        apellidoPaciente: String(apellidoPaciente),
-        fechaInicio: String(fechaInicio),
-        horaInicio: String(horaInicio)
-    };
-
-    const payloadCodificado = base64UrlEncode(JSON.stringify(payload));
-    const firma = firmarPayload(payloadCodificado);
-    return `${payloadCodificado}.${firma}`;
+    const idCodificado = Number(id_reserva).toString(36);
+    const firma = firmarPayload(idCodificado).slice(0, 22);
+    return `${idCodificado}.${firma}`;
 }
 
 export function verificarTokenReserva(token) {
@@ -56,27 +43,17 @@ export function verificarTokenReserva(token) {
         return null;
     }
 
-    const firmaEsperada = firmarPayload(payloadCodificado);
+    const firmaEsperada = firmarPayload(payloadCodificado).slice(0, 22);
     if (firma !== firmaEsperada) {
         return null;
     }
 
-    try {
-        const payload = JSON.parse(base64UrlDecode(payloadCodificado));
-        if (!payload?.id_reserva || !payload?.nombrePaciente || !payload?.apellidoPaciente || !payload?.fechaInicio || !payload?.horaInicio) {
-            return null;
-        }
-
-        return {
-            id_reserva: payload.id_reserva,
-            nombrePaciente: payload.nombrePaciente,
-            apellidoPaciente: payload.apellidoPaciente,
-            fechaInicio: payload.fechaInicio,
-            horaInicio: payload.horaInicio
-        };
-    } catch {
+    const id_reserva = parseInt(payloadCodificado, 36);
+    if (!Number.isInteger(id_reserva) || id_reserva <= 0) {
         return null;
     }
+
+    return { id_reserva };
 }
 
 export function construirEnlacesReservaToken({
