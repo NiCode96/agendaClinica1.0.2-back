@@ -20,7 +20,23 @@ function formatearFechaCorta(fecha) {
   const valor = String(fecha).slice(0, 10);
   const [year, month, day] = valor.split("-");
   if (!year || !month || !day) return String(fecha);
-  return `${day}/${month}/${year}`;
+  const meses = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre"
+  ];
+  const mesIndice = Number(month) - 1;
+  const mesTexto = meses[mesIndice] || month;
+  return `${Number(day)} de ${mesTexto} de ${year}`;
 }
 
 function formatearHoraCorta(hora) {
@@ -79,6 +95,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const logoSistema = "/logosf1.png";
 
       // GET siempre muestra la página de confirmación con formulario POST
       // Los clientes de correo NO ejecutan formularios POST, solo GET
@@ -110,7 +127,13 @@ export default class NotificacionAgendamientoController {
             }
             h1 { color: #0f4c81; margin-bottom: 20px; }
             p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
-            .icon { font-size: 64px; margin-bottom: 20px; }
+            .brandmark {
+              width: 108px;
+              height: 108px;
+              object-fit: contain;
+              margin: 0 auto 20px;
+              display: block;
+            }
             .eyebrow {
               color: #1d4ed8;
               font-size: 12px;
@@ -144,7 +167,7 @@ export default class NotificacionAgendamientoController {
         <body>
           <div class="container">
             <div class="eyebrow">${nombreSistema}</div>
-            <div class="icon">📅</div>
+            <img src="${logoSistema}" alt="AgendaClinica" class="brandmark" />
             <h1>¿Confirmar tu cita?</h1>
             <p>Estás a punto de confirmar la siguiente cita:</p>
             <div class="detail-box">
@@ -206,6 +229,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const logoSistema = "/logosf1.png";
 
       const reservaPacienteClass = new ReservaPacientes();
       const estadoReserva = "CONFIRMADA";
@@ -254,7 +278,13 @@ export default class NotificacionAgendamientoController {
                 }
                 h1 { color: #0f4c81; margin-bottom: 20px; }
                 p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
-                .icon { font-size: 64px; margin-bottom: 20px; }
+                .brandmark {
+                  width: 108px;
+                  height: 108px;
+                  object-fit: contain;
+                  margin: 0 auto 20px;
+                  display: block;
+                }
                 .eyebrow {
                   color: #1d4ed8;
                   font-size: 12px;
@@ -268,7 +298,7 @@ export default class NotificacionAgendamientoController {
             <body>
               <div class="container">
                 <div class="eyebrow">${nombreSistema}</div>
-                <div class="icon">✅</div>
+                <img src="${logoSistema}" alt="AgendaClinica" class="brandmark" />
                 <h1>¡Cita Confirmada!</h1>
                 <p><strong>${nombrePaciente} ${apellidoPaciente}</strong></p>
                 <p>Tu cita para el <strong>${fechaFormateada}</strong> a las <strong>${horaFormateada}</strong> ha sido confirmada exitosamente.</p>
@@ -375,6 +405,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const logoSistema = "/logosf1.png";
 
       // GET siempre muestra la página de confirmación con formulario POST
       return res.send(`
@@ -405,7 +436,13 @@ export default class NotificacionAgendamientoController {
             }
             h1 { color: #0f4c81; margin-bottom: 20px; }
             p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
-            .icon { font-size: 64px; margin-bottom: 20px; }
+            .brandmark {
+              width: 108px;
+              height: 108px;
+              object-fit: contain;
+              margin: 0 auto 20px;
+              display: block;
+            }
             .eyebrow {
               color: #1d4ed8;
               font-size: 12px;
@@ -448,7 +485,7 @@ export default class NotificacionAgendamientoController {
         <body>
           <div class="container">
             <div class="eyebrow">${nombreSistema}</div>
-            <div class="icon">⚠️</div>
+            <img src="${logoSistema}" alt="AgendaClinica" class="brandmark" />
             <h1>¿Cancelar tu cita?</h1>
             <p>Estás a punto de cancelar la siguiente cita:</p>
             <div class="detail-box">
@@ -513,6 +550,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const logoSistema = "/logosf1.png";
 
       const reservaPacienteClass = new ReservaPacientes();
       const estadoReserva = "ANULADA";
@@ -561,7 +599,13 @@ export default class NotificacionAgendamientoController {
                 }
                 h1 { color: #0f4c81; margin-bottom: 20px; }
                 p { color: #334155; line-height: 1.6; margin-bottom: 10px; }
-                .icon { font-size: 64px; margin-bottom: 20px; }
+                .brandmark {
+                  width: 108px;
+                  height: 108px;
+                  object-fit: contain;
+                  margin: 0 auto 20px;
+                  display: block;
+                }
                 .eyebrow {
                   color: #1d4ed8;
                   font-size: 12px;
@@ -575,7 +619,7 @@ export default class NotificacionAgendamientoController {
             <body>
               <div class="container">
                 <div class="eyebrow">${nombreSistema}</div>
-                <div class="icon">❌</div>
+                <img src="${logoSistema}" alt="AgendaClinica" class="brandmark" />
                 <h1>Cita Cancelada</h1>
                 <p><strong>${nombrePaciente} ${apellidoPaciente}</strong></p>
                 <p>Tu cita para el <strong>${fechaFormateada}</strong> a las <strong>${horaFormateada}</strong> ha sido cancelada.</p>
