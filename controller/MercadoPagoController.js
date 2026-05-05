@@ -4,6 +4,7 @@ import PedidoCompras from "../model/PedidoCompras.js";
 import ReservaPacientes from "../model/ReservaPacientes.js";
 import Pacientes from "../model/Pacientes.js";
 import NotificacionAgendamiento from "../services/notificacionAgendamiento.js";
+import { notificacionAgendamiento } from "../services/notificacionWhatsApp.js";
 
 dotenv.config();
 
@@ -293,6 +294,17 @@ export const recibirPago = async (req, res) => {
                         } catch (errMailEquipo) {
                             console.error('Error enviando notificacion al equipo:', errMailEquipo);
                         }
+
+                        notificacionAgendamiento({
+                            telefono: reserva.telefono,
+                            nombre: reserva.nombrePaciente,
+                            apellido: reserva.apellidoPaciente,
+                            fecha: reserva.fechaInicio,
+                            hora: reserva.horaInicio,
+                            id_reserva: reserva.id_reserva
+                        }).catch((errWsp) => {
+                            console.error('Error enviando WhatsApp de agendamiento:', errWsp?.message || errWsp);
+                        });
                     } else {
                         console.warn('No se encontro reserva para preference_id:', preference_id);
                     }

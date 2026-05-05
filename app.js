@@ -105,7 +105,7 @@ app.post('/test-whatsapp', async (req, res) => {
             return res.status(401).json({ ok: false, error: "No autorizado" });
         }
 
-        const { telefono, nombre, clinica, fecha, hora } = req.body;
+        const { telefono, nombre, apellido, clinica, fecha, hora, id_reserva } = req.body;
 
         if (!telefono || !nombre || !fecha || !hora) {
             return res.status(400).json({
@@ -114,7 +114,7 @@ app.post('/test-whatsapp', async (req, res) => {
             });
         }
 
-        const enviado = await notificacionAgendamiento({ telefono, nombre, clinica, fecha, hora });
+        const enviado = await notificacionAgendamiento({ telefono, nombre, apellido, clinica, fecha, hora, id_reserva });
 
         if (enviado) {
             res.json({ ok: true, message: "Mensaje WhatsApp enviado correctamente" });

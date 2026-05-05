@@ -1,5 +1,18 @@
 import NotificacionAgendamiento from "../services/notificacionAgendamiento.js";
 import ReservaPacientes from "../model/ReservaPacientes.js";
+import { enviarMensajeTextoWhatsApp } from "../services/notificacionWhatsApp.js";
+import { resolverDatosReservaDesdeRequest } from "../services/notificacionReservaToken.js";
+
+function parsearPayloadRespuestaWhatsApp(payload = "") {
+  const valor = String(payload || "").trim();
+  if (!valor.includes(":")) return null;
+
+  const [accion, idReservaTexto] = valor.split(":");
+  const id_reserva = Number(idReservaTexto);
+  if (!accion || Number.isNaN(id_reserva) || id_reserva <= 0) return null;
+
+  return { accion, id_reserva };
+}
 
 export default class NotificacionAgendamientoController {
 
@@ -10,22 +23,25 @@ export default class NotificacionAgendamientoController {
    */
   static async confirmarCita(req, res) {
     try {
-      const {
-        id_reserva,
-        nombrePaciente,
-        apellidoPaciente,
-        fechaInicio,
-        horaInicio
-      } = req.query;
+      const datosReserva = resolverDatosReservaDesdeRequest(req);
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
 
-      if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
+      if (!datosReserva) {
         return res.status(400).json({
           ok: false,
           message: "Faltan parámetros requeridos"
         });
       }
+
+      const {
+        id_reserva,
+        nombrePaciente,
+        apellidoPaciente,
+        fechaInicio,
+        horaInicio,
+        token
+      } = datosReserva;
 
       // GET siempre muestra la página de confirmación con formulario POST
       // Los clientes de correo NO ejecutan formularios POST, solo GET
@@ -95,6 +111,7 @@ export default class NotificacionAgendamientoController {
               <input type="hidden" name="apellidoPaciente" value="${apellidoPaciente}" />
               <input type="hidden" name="fechaInicio" value="${fechaInicio}" />
               <input type="hidden" name="horaInicio" value="${horaInicio}" />
+              ${token ? `<input type="hidden" name="token" value="${token}" />` : ""}
               <button type="submit" class="btn btn-confirm">✅ Sí, confirmar mi cita</button>
             </form>
             <p style="margin-top: 30px; color: #6b7280; font-size: 12px;">
@@ -120,22 +137,24 @@ export default class NotificacionAgendamientoController {
    */
   static async ejecutarConfirmacion(req, res) {
     try {
+      const datosReserva = resolverDatosReservaDesdeRequest(req);
+
+      const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
+
+      if (!datosReserva) {
+        return res.status(400).json({
+          ok: false,
+          message: "Faltan parámetros requeridos"
+        });
+      }
+
       const {
         id_reserva,
         nombrePaciente,
         apellidoPaciente,
         fechaInicio,
         horaInicio
-      } = req.body;
-
-      const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
-
-      if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
-        return res.status(400).json({
-          ok: false,
-          message: "Faltan parámetros requeridos"
-        });
-      }
+      } = datosReserva;
 
       const reservaPacienteClass = new ReservaPacientes();
       const estadoReserva = "CONFIRMADA";
@@ -273,22 +292,25 @@ export default class NotificacionAgendamientoController {
    */
   static async cancelarCita(req, res) {
     try {
-      const {
-        id_reserva,
-        nombrePaciente,
-        apellidoPaciente,
-        fechaInicio,
-        horaInicio
-      } = req.query;
+      const datosReserva = resolverDatosReservaDesdeRequest(req);
 
       const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
 
-      if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
+      if (!datosReserva) {
         return res.status(400).json({
           ok: false,
           message: "Faltan parámetros requeridos"
         });
       }
+
+      const {
+        id_reserva,
+        nombrePaciente,
+        apellidoPaciente,
+        fechaInicio,
+        horaInicio,
+        token
+      } = datosReserva;
 
       // GET siempre muestra la página de confirmación con formulario POST
       return res.send(`
@@ -370,6 +392,7 @@ export default class NotificacionAgendamientoController {
               <input type="hidden" name="apellidoPaciente" value="${apellidoPaciente}" />
               <input type="hidden" name="fechaInicio" value="${fechaInicio}" />
               <input type="hidden" name="horaInicio" value="${horaInicio}" />
+              ${token ? `<input type="hidden" name="token" value="${token}" />` : ""}
               <button type="submit" class="btn btn-cancel">❌ Sí, cancelar mi cita</button>
             </form>
             <p style="margin-top: 30px; color: #6b7280; font-size: 12px;">
@@ -395,22 +418,24 @@ export default class NotificacionAgendamientoController {
    */
   static async ejecutarCancelacion(req, res) {
     try {
+      const datosReserva = resolverDatosReservaDesdeRequest(req);
+
+      const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
+
+      if (!datosReserva) {
+        return res.status(400).json({
+          ok: false,
+          message: "Faltan parámetros requeridos"
+        });
+      }
+
       const {
         id_reserva,
         nombrePaciente,
         apellidoPaciente,
         fechaInicio,
         horaInicio
-      } = req.body;
-
-      const empresa = process.env.NOMBRE_EMPRESA || "Clinica";
-
-      if (!id_reserva || !nombrePaciente || !apellidoPaciente || !fechaInicio || !horaInicio) {
-        return res.status(400).json({
-          ok: false,
-          message: "Faltan parámetros requeridos"
-        });
-      }
+      } = datosReserva;
 
       const reservaPacienteClass = new ReservaPacientes();
       const estadoReserva = "ANULADA";
@@ -528,6 +553,86 @@ export default class NotificacionAgendamientoController {
         ok: false,
         message: "Error al cancelar la cita"
       });
+    }
+  }
+
+  static async procesarRespuestaWhatsApp(req, res) {
+    try {
+      const {
+        ButtonPayload,
+        ButtonText,
+        From
+      } = req.body;
+
+      const respuesta = parsearPayloadRespuestaWhatsApp(ButtonPayload);
+
+      if (!respuesta) {
+        console.warn("[WSP-INBOUND] Payload inválido:", ButtonPayload, "| ButtonText:", ButtonText);
+        return res.status(200).send("OK");
+      }
+
+      const { accion, id_reserva } = respuesta;
+      const reservaPacienteClass = new ReservaPacientes();
+      const dataReserva = await reservaPacienteClass.seleccionarFichasReservadasEspecifica(id_reserva);
+      const reserva = Array.isArray(dataReserva) && dataReserva.length > 0 ? dataReserva[0] : null;
+
+      if (!reserva) {
+        console.warn("[WSP-INBOUND] No se encontró reserva para id_reserva:", id_reserva);
+        await enviarMensajeTextoWhatsApp({
+          telefono: From,
+          mensaje: "No encontramos la cita asociada a tu respuesta. Si necesitas ayuda, contáctanos directamente."
+        });
+        return res.status(200).send("OK");
+      }
+
+      let estadoReserva;
+      let mensajePaciente;
+      let accionEquipo;
+
+      if (accion === "CONFIRMAR_RESERVA") {
+        estadoReserva = "CONFIRMADA";
+        accionEquipo = "CONFIRMADA";
+        mensajePaciente = `Tu cita del ${String(reserva.fechaInicio).slice(0, 10)} a las ${reserva.horaInicio} ha sido confirmada correctamente.`;
+      } else if (accion === "CANCELAR_RESERVA") {
+        estadoReserva = "ANULADA";
+        accionEquipo = "CANCELADA";
+        mensajePaciente = `Tu cita del ${String(reserva.fechaInicio).slice(0, 10)} a las ${reserva.horaInicio} ha sido anulada correctamente.`;
+      } else {
+        console.warn("[WSP-INBOUND] Acción no soportada:", accion);
+        return res.status(200).send("OK");
+      }
+
+      const respuestaBackend = await reservaPacienteClass.actualizarEstado(estadoReserva, id_reserva);
+      if (!respuestaBackend || respuestaBackend.affectedRows <= 0) {
+        await enviarMensajeTextoWhatsApp({
+          telefono: From,
+          mensaje: "No fue posible procesar tu respuesta en este momento. Intenta nuevamente o contáctanos."
+        });
+        return res.status(200).send("OK");
+      }
+
+      try {
+        await NotificacionAgendamiento.enviarCorreoConfirmacionEquipo({
+          nombrePaciente: reserva.nombrePaciente,
+          apellidoPaciente: reserva.apellidoPaciente,
+          fechaInicio: reserva.fechaInicio,
+          horaInicio: reserva.horaInicio,
+          accion: accionEquipo,
+          id_reserva
+        });
+      } catch (errorCorreo) {
+        console.error("[WSP-INBOUND] Error notificando al equipo:", errorCorreo);
+      }
+
+      await enviarMensajeTextoWhatsApp({
+        telefono: reserva.telefono || From,
+        mensaje: mensajePaciente
+      });
+
+      return res.status(200).send("OK");
+    } catch (error) {
+      console.error("[WSP-INBOUND] Error procesando respuesta:", error);
+      return res.status(200).send("OK");
     }
   }
 }

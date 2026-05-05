@@ -1,3 +1,5 @@
+import { construirEnlacesReservaToken } from "./notificacionReservaToken.js";
+
 export default class NotificacionAgendamiento {
     static async enviarCorreoActualizacionReserva({
                                                       to,
@@ -40,9 +42,13 @@ export default class NotificacionAgendamiento {
 
         const subject = `Tu cita en ${fromName} ha sido actualizada`;
 
-        const baseUrl = process.env.BACKEND_URL || "https://siluetachic.nativecode.cl";
-        const urlConfirmar = `${baseUrl}/notificacion/confirmar?id_reserva=${id_reserva}&nombrePaciente=${encodeURIComponent(nombrePaciente)}&apellidoPaciente=${encodeURIComponent(apellidoPaciente)}&fechaInicio=${encodeURIComponent(fechaInicio)}&horaInicio=${encodeURIComponent(horaInicio)}`;
-        const urlCancelar = `${baseUrl}/notificacion/cancelar?id_reserva=${id_reserva}&nombrePaciente=${encodeURIComponent(nombrePaciente)}&apellidoPaciente=${encodeURIComponent(apellidoPaciente)}&fechaInicio=${encodeURIComponent(fechaInicio)}&horaInicio=${encodeURIComponent(horaInicio)}`;
+        const { urlConfirmar, urlCancelar } = construirEnlacesReservaToken({
+            id_reserva,
+            nombrePaciente,
+            apellidoPaciente,
+            fechaInicio,
+            horaInicio
+        });
         const empresa = process.env.NOMBRE_EMPRESA || "Sistema de Agendamiento";
 
         const text =
@@ -163,9 +169,13 @@ export default class NotificacionAgendamiento {
         const subject = `Tu cita en ${fromName} ha sido registrada`;
 
         // Construir URLs
-        const baseUrl = process.env.BACKEND_URL || "https://siluetachic.nativecode.cl";
-        const urlConfirmar = `${baseUrl}/notificacion/confirmar?id_reserva=${id_reserva}&nombrePaciente=${encodeURIComponent(nombrePaciente)}&apellidoPaciente=${encodeURIComponent(apellidoPaciente)}&fechaInicio=${encodeURIComponent(fechaInicio)}&horaInicio=${encodeURIComponent(horaInicio)}`;
-        const urlCancelar = `${baseUrl}/notificacion/cancelar?id_reserva=${id_reserva}&nombrePaciente=${encodeURIComponent(nombrePaciente)}&apellidoPaciente=${encodeURIComponent(apellidoPaciente)}&fechaInicio=${encodeURIComponent(fechaInicio)}&horaInicio=${encodeURIComponent(horaInicio)}`;
+        const { urlConfirmar, urlCancelar } = construirEnlacesReservaToken({
+            id_reserva,
+            nombrePaciente,
+            apellidoPaciente,
+            fechaInicio,
+            horaInicio
+        });
         const empresa = process.env.NOMBRE_EMPRESA || "Sistema de Agendamiento";
 
         const text =

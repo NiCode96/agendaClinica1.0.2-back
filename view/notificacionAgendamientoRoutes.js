@@ -8,10 +8,13 @@ router.use(express.urlencoded({ extended: true }));
 
 // Rutas GET: Solo muestran la página de confirmación (seguras contra pre-carga de correos)
 router.get("/confirmar", NotificacionAgendamientoController.confirmarCita);
+router.get("/confirmar/:token", NotificacionAgendamientoController.confirmarCita);
 router.get("/cancelar", NotificacionAgendamientoController.cancelarCita);
+router.get("/cancelar/:token", NotificacionAgendamientoController.cancelarCita);
 
 // Rutas POST: Ejecutan la acción real (los clientes de correo NUNCA ejecutan POST)
 router.post("/confirmar/ejecutar", NotificacionAgendamientoController.ejecutarConfirmacion);
 router.post("/cancelar/ejecutar", NotificacionAgendamientoController.ejecutarCancelacion);
+router.post("/whatsapp/respuesta", NotificacionAgendamientoController.procesarRespuestaWhatsApp);
 
 export default router;

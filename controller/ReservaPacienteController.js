@@ -242,8 +242,10 @@ export default class ReservaPacienteController {
                 notificacionActualizacionAgendamiento({
                     telefono,
                     nombre: nombrePaciente,
+                    apellido: apellidoPaciente,
                     fecha: fechaInicio,
-                    hora: horaInicio
+                    hora: horaInicio,
+                    id_reserva
                 }).catch(err => {
                     console.error("[WSP] Error actualización:", err.message);
                 });
@@ -393,8 +395,10 @@ export default class ReservaPacienteController {
                 notificacionAgendamiento({
                     telefono,
                     nombre: nombrePaciente,
+                    apellido: apellidoPaciente,
                     fecha: fechaInicio,
-                    hora: horaInicio
+                    hora: horaInicio,
+                    id_reserva: resultadoQuery.insertId
                 }).catch(err => {
                     console.error("[WSP] Error:", err.message);
                 });
@@ -500,8 +504,10 @@ export default class ReservaPacienteController {
                 notificacionAgendamiento({
                     telefono,
                     nombre: nombrePaciente,
+                    apellido: apellidoPaciente,
                     fecha: fechaInicio,
-                    hora: horaInicio
+                    hora: horaInicio,
+                    id_reserva: resultadoQuery.insertId
                 }).catch(err => {
                     console.error("[WSP] Error:", err.message);
                 });

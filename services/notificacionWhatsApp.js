@@ -1,4 +1,5 @@
 import twilio from 'twilio';
+import { construirEnlacesReservaToken } from './notificacionReservaToken.js';
 
 /**
  * SERVICIO DE NOTIFICACIONES WHATSAPP VÍA TWILIO (TEMPLATE APROBADO)
@@ -9,6 +10,10 @@ import twilio from 'twilio';
  * - TWILIO_AUTH_TOKEN
  * - TWILIO_WHATSAPP_FROM  (ej: +12605537594)
  * - TWILIO_CONTENT_SID    (ej: HX0b7bd1b24b7822c0f8b92d6408947e6c)
+ * - TWILIO_TEMPLATE_BUTTON_MODE
+ *   - quick_reply: usa payloads en botones de respuesta
+ *   - url_buttons: usa botones que abren URL
+ *   - text_links: envía los links dentro del cuerpo del template
  * - NOMBRE_EMPRESA        (se usa como nombre de clínica por defecto)
  */
 
@@ -18,6 +23,10 @@ import twilio from 'twilio';
  */
 function formatearTelefonoWhatsApp(telefono) {
     if (!telefono) return null;
+
+    if (String(telefono).startsWith("whatsapp:")) {
+        return String(telefono);
+    }
 
     let limpio = telefono.replace(/[\s\-\(\)\.]/g, '');
 
@@ -40,6 +49,27 @@ function formatearTelefonoWhatsApp(telefono) {
     return `whatsapp:+56${limpio}`;
 }
 
+function construirEnlacesReserva({ id_reserva, nombre, apellido, fecha, hora }) {
+    return construirEnlacesReservaToken({
+        id_reserva,
+        nombrePaciente: nombre,
+        apellidoPaciente: apellido,
+        fechaInicio: fecha,
+        horaInicio: hora
+    });
+}
+
+function construirPayloadsReserva({ id_reserva }) {
+    if (!id_reserva) {
+        return { payloadConfirmar: "", payloadCancelar: "" };
+    }
+
+    return {
+        payloadConfirmar: `CONFIRMAR_RESERVA:${id_reserva}`,
+        payloadCancelar: `CANCELAR_RESERVA:${id_reserva}`
+    };
+}
+
 /**
  * Envía un mensaje de WhatsApp usando el template aprobado de Twilio.
  *
@@ -57,7 +87,7 @@ function formatearTelefonoWhatsApp(telefono) {
 FUNCION QUE ENVIA UN MENSAJE DE WSP INGRESO Y NOTIFICACION DEL AGENDAMIENTO REALIZADO
 */}
 
-export async function notificacionAgendamiento({ telefono, nombre, clinica, fecha, hora }) {
+export async function notificacionAgendamiento({ telefono, nombre, apellido, clinica, fecha, hora, id_reserva }) {
     const {
         TWILIO_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN,
@@ -108,22 +138,66 @@ export async function notificacionAgendamiento({ telefono, nombre, clinica, fech
     const fromNumber = TWILIO_WHATSAPP_FROM.startsWith('+')
         ? TWILIO_WHATSAPP_FROM
         : `+${TWILIO_WHATSAPP_FROM}`;
+    const { urlConfirmar, urlCancelar } = construirEnlacesReserva({
+        id_reserva,
+        nombre,
+        apellido,
+        fecha,
+        hora
+    });
+    const { payloadConfirmar, payloadCancelar } = construirPayloadsReserva({ id_reserva });
+    const buttonMode = String(process.env.TWILIO_TEMPLATE_BUTTON_MODE || "quick_reply").toLowerCase();
+    let contentVariables;
+
+    if (buttonMode === "url_buttons") {
+        contentVariables = {
+            1: nombre,
+            2: nombreClinica,
+            3: fecha,
+            4: hora,
+            5: DIRECCION_EMPRESA,
+            6: TELEFONO_EMPRESA,
+            7: id_reserva ? String(id_reserva) : "",
+            8: id_reserva ? String(id_reserva) : "",
+        };
+    } else if (buttonMode === "text_links") {
+        contentVariables = {
+            1: nombre,
+            2: nombreClinica,
+            3: fecha,
+            4: hora,
+            5: DIRECCION_EMPRESA,
+            6: TELEFONO_EMPRESA,
+            7: urlConfirmar || "",
+            8: urlCancelar || "",
+        };
+    } else {
+        contentVariables = {
+            1: nombre,
+            2: nombreClinica,
+            3: fecha,
+            4: hora,
+            5: DIRECCION_EMPRESA,
+            6: TELEFONO_EMPRESA,
+            7: payloadConfirmar,
+            8: payloadCancelar,
+            9: urlConfirmar || "",
+            10: urlCancelar || "",
+        };
+    }
 
     try {
         const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+        console.log("[WSP] buttonMode:", buttonMode);
+        console.log("[WSP] variable7:", contentVariables[7]);
+        console.log("[WSP] variable8:", contentVariables[8]);
 
         await client.messages.create({
             from: `whatsapp:${fromNumber}`,
             to: destinatario,
             contentSid: TWILIO_CONTENT_SID,
-            contentVariables: JSON.stringify({
-                1: nombre,
-                2: nombreClinica,
-                3: fecha,
-                4: hora,
-                5: DIRECCION_EMPRESA,
-                6: TELEFONO_EMPRESA,
-            })
+            contentVariables: JSON.stringify(contentVariables)
         });
 
         console.log(`[WSP] Mensaje enviado a ${destinatario} (${nombre} - ${fecha} ${hora})`);
@@ -134,12 +208,53 @@ export async function notificacionAgendamiento({ telefono, nombre, clinica, fech
     }
 }
 
-export async function notificacionActualizacionAgendamiento({ telefono, nombre, clinica, fecha, hora }) {
-    const enviado = await notificacionAgendamiento({ telefono, nombre, clinica, fecha, hora });
+export async function notificacionActualizacionAgendamiento({ telefono, nombre, apellido, clinica, fecha, hora, id_reserva }) {
+    const enviado = await notificacionAgendamiento({ telefono, nombre, apellido, clinica, fecha, hora, id_reserva });
     if (enviado) {
         console.log(`[WSP] Notificación de actualización enviada a ${nombre} (${fecha} ${hora})`);
     }
     return enviado;
+}
+
+export async function enviarMensajeTextoWhatsApp({ telefono, mensaje }) {
+    const {
+        TWILIO_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN,
+        TWILIO_WHATSAPP_FROM
+    } = process.env;
+
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_FROM) {
+        console.warn("[WSP] Configuración incompleta para enviar mensaje de respuesta.");
+        return false;
+    }
+
+    if (!telefono || !mensaje) {
+        console.warn("[WSP] Faltan telefono o mensaje para la respuesta por WhatsApp.");
+        return false;
+    }
+
+    const destinatario = formatearTelefonoWhatsApp(telefono);
+    if (!destinatario) {
+        console.warn("[WSP] No se pudo formatear el teléfono:", telefono);
+        return false;
+    }
+
+    const fromNumber = TWILIO_WHATSAPP_FROM.startsWith('+')
+        ? TWILIO_WHATSAPP_FROM
+        : `+${TWILIO_WHATSAPP_FROM}`;
+
+    try {
+        const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+        await client.messages.create({
+            from: `whatsapp:${fromNumber}`,
+            to: destinatario,
+            body: mensaje
+        });
+        return true;
+    } catch (error) {
+        console.error("[WSP] Error al enviar respuesta por WhatsApp:", error.message);
+        return false;
+    }
 }
 
 
