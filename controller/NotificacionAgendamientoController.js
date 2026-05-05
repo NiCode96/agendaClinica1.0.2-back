@@ -452,6 +452,7 @@ export default class NotificacionAgendamientoController {
       } = datosReserva;
       const fechaFormateada = formatearFechaCorta(fechaInicio);
       const horaFormateada = formatearHoraCorta(horaInicio);
+      const fechaInput = normalizarFechaInput(fechaInicio);
       const logoSistema = "/logoAC3.png";
 
       // GET siempre muestra la página de confirmación con formulario POST
