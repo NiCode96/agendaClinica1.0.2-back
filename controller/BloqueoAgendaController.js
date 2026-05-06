@@ -15,8 +15,11 @@ export default class BloqueoAgendaController {
             const BloqueoAgendaClass = new BloqueoAgenda();
             const respuestaModel = await BloqueoAgendaClass.insertarBloqueoAgendaModel(id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo);
 
-            if(Array.isArray(respuestaModel) && respuestaModel.length === 0){
-                return res.status(200).send({message : "sindisponibilidad"});
+            if(respuestaModel?.conflicto === "bloqueo"){
+                return res.status(200).send({message : "bloqueoExistente"});
+            }
+            if(respuestaModel?.conflicto === "reserva"){
+                return res.status(200).send({message : "reservaExistente"});
             }
             if(respuestaModel.affectedRows > 0){
                 return res.status(200).send({message : true});

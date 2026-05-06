@@ -343,7 +343,7 @@ SELECT COUNT(*) AS cnt FROM (
     async seleccionarPorId_profesional(id_profesional) {
         try {
             const conexion = DataBase.getInstance();
-            const query = 'SELECT * FROM reservaPacientes WHERE id_profesional = ? AND estadoPeticion <> 0 ';
+            const query = 'SELECT reservaPacientes.*, profesionales.nombreProfesional FROM reservaPacientes INNER JOIN profesionales ON reservaPacientes.id_profesional = profesionales.id_profesional WHERE reservaPacientes.id_profesional = ? AND reservaPacientes.estadoPeticion <> 0';
             const param = [id_profesional];
 
             const resultadoQuery = await conexion.ejecutarQuery(query, param);

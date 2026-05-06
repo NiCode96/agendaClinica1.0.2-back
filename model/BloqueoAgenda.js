@@ -1,4 +1,5 @@
 import DataBase from "../config/Database.js";
+import ReservaPacientes from "./ReservaPacientes.js";
 
 export default class BloqueoAgenda {
 
@@ -17,6 +18,7 @@ export default class BloqueoAgenda {
     async insertarBloqueoAgendaModel(id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo) {
         try {
             const conexion = DataBase.getInstance();
+            const reservaPacienteClass = new ReservaPacientes();
             const queryPrevia = `SELECT * FROM bloqueoAgenda
                 WHERE id_profesional = ?
                 AND estado_bloqueoAgenda <> 0
@@ -27,26 +29,27 @@ export default class BloqueoAgenda {
             const paramsPrevios = [id_profesional, fechaFinalizacion, fechaInicio, horaFinalizacion, horaInicio];
 
             const respuestaBackendVerificadora = await conexion.ejecutarQuery(queryPrevia, paramsPrevios);
-            let disponibilidadHorarioBloqueo;
-
             if (respuestaBackendVerificadora.length > 0) {
-                disponibilidadHorarioBloqueo = false;
-            }else{
-                disponibilidadHorarioBloqueo = true;
+                return {conflicto: "bloqueo"};
             }
 
-            if (disponibilidadHorarioBloqueo) {
+            const horarioDisponible = await reservaPacienteClass.validarDisponibilidadBoolean(
+                fechaInicio,
+                horaInicio,
+                fechaFinalizacion,
+                horaFinalizacion,
+                id_profesional
+            );
 
-                const query = 'INSERT INTO bloqueoAgenda (id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo) VALUES (?,?,?,?,?,?)';
-                const params = [id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo];
-                const respuestaCosulta = await conexion.ejecutarQuery(query, params);
-                if (respuestaCosulta) {
-                    return respuestaCosulta;
-                }
+            if (!horarioDisponible) {
+                return {conflicto: "reserva"};
+            }
 
-            }else{
-
-                return [];
+            const query = 'INSERT INTO bloqueoAgenda (id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo) VALUES (?,?,?,?,?,?)';
+            const params = [id_profesional,fechaInicio,horaInicio,fechaFinalizacion,horaFinalizacion,motivo];
+            const respuestaCosulta = await conexion.ejecutarQuery(query, params);
+            if (respuestaCosulta) {
+                return respuestaCosulta;
             }
         }catch (error) {
             throw Error('No fue posible insertar bloqueo desde la clase BloqueoAgenda.js');
